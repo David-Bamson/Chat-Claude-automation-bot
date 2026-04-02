@@ -18,77 +18,255 @@
 
 ---
 
-## B. SYSTEM OVERVIEW
+## B. TWO VERSIONS — START WITH THE MVP
 
-```
-Customer sends WhatsApp message
-        ↓
-WhatsApp Business API receives message
-        ↓
-Make.com webhook triggers automation
-        ↓
-Claude AI classifies intent + generates reply
-        ↓
-Reply sent back to customer (< 3 seconds)
-        ↓
-Lead data extracted → saved to Airtable CRM
-        ↓
-Booking confirmed → Google Calendar event created
-        ↓
-Reminder messages sent 24h + 2h before appointment
-        ↓
-Post-service thank-you + rebook prompt sent automatically
-        ↓
-Owner receives daily WhatsApp summary each morning
-```
+This system has two versions. Start with the MVP. Upgrade only when the client is seeing consistent value.
 
-**Data Flow:**
+| | MVP | Full System |
+|-|-----|-------------|
+| **Setup time** | Under 2 hours | 80–90 minutes (after MVP is running) |
+| **Monthly cost** | $0 | ~$14–35/month |
+| **Tools** | 3 | 5 |
+| **AI replies** | No — fixed menu | Yes — Claude AI |
+| **Calendar sync** | No — Sheet only | Yes — Google Calendar |
+| **Reminders** | No | Yes — 24h + 2h |
+| **Follow-ups** | No | Yes — 4h + 7 days |
+| **Owner summary** | No | Yes — daily WhatsApp |
+| **Sell at** | $49 setup, $0/month | $49–149 setup, $29–99/month |
+
+---
+
+## C. MVP — SYSTEM OVERVIEW
+
+**The 3 tools:**
+
+| Tool | Purpose | Cost |
+|------|---------|------|
+| WhatsApp Cloud API (Meta) | Receive + send messages | Free |
+| Make.com | Run the automation | Free (up to 1,000 ops/month) |
+| Google Sheets | Store leads + bookings | Free |
+
+**Total monthly cost: $0**
+
+**MVP Flow:**
 ```
-[Customer WhatsApp]
-        │
-        ▼
-[WhatsApp Cloud API] ←→ [Meta Business Account]
-        │
-        ▼
-[Make.com Webhook] — receives message payload
-        │
-        ├──→ [Claude AI] → intent classified → reply generated → sent back
-        │
-        ├──→ [Airtable] → lead captured / updated
-        │
-        ├──→ [Google Calendar] → booking created
-        │
-        └──→ [Scheduler] → reminders + follow-ups queued
+Customer messages the business WhatsApp
+        ↓
+Bot replies instantly with a greeting + numbered menu
+        ↓
+Customer picks: 1 (Book) or 2 (Ask a Question)
+        ↓
+Bot collects: Name → Service → Date & Time
+        ↓
+Booking saved to Google Sheets
+        ↓
+Customer receives confirmation message
+        ↓
+Owner sees the booking in their Sheet
 ```
 
 ---
 
-## C. TECH STACK
+## D. MVP — STEP-BY-STEP WORKFLOW
+
+### STEP 1 — Customer writes anything
+**Bot replies:**
+```
+Hi! Welcome to {BUSINESS_NAME} 👋
+
+How can I help you today? Reply with a number:
+
+1️⃣ Book an appointment
+2️⃣ Ask a question
+```
+
+---
+
+### STEP 2A — Customer replies "1" (Book)
+**Bot replies:**
+```
+Great! What service would you like?
+
+1️⃣ {SERVICE_1} — {PRICE_1}
+2️⃣ {SERVICE_2} — {PRICE_2}
+3️⃣ {SERVICE_3} — {PRICE_3}
+```
+
+---
+
+### STEP 3 — Customer picks a service
+**Bot replies:**
+```
+Perfect! What's your name?
+```
+
+---
+
+### STEP 4 — Customer gives name
+**Bot replies:**
+```
+Thanks {NAME}! What date and time works for you?
+
+We're open: {DAYS}: {HOURS}
+
+Just reply with your preferred date and time (e.g. "Friday 3pm")
+```
+
+---
+
+### STEP 5 — Customer gives date and time
+**Bot replies:**
+```
+You're all set, {NAME}! ✅
+
+📋 Service: {SERVICE}
+📅 Date: {DATE}
+⏰ Time: {TIME}
+📍 {BUSINESS_NAME}
+
+We'll see you then! Message us if anything changes.
+```
+
+**Simultaneously:** Row added to Google Sheet.
+
+---
+
+### STEP 2B — Customer replies "2" (Question)
+**Bot replies:**
+```
+Of course! What would you like to know?
+You can ask about our services, prices, or location.
+Or reply BOOK any time to make a booking.
+```
+
+Any follow-up → bot replies:
+```
+Thanks! {OWNER_NAME} will get back to you shortly.
+```
+
+Owner replies manually from their WhatsApp.
+
+---
+
+### GOOGLE SHEET STRUCTURE
+
+| Column | Stores |
+|--------|--------|
+| A — Timestamp | When booking was made |
+| B — Customer Phone | Their WhatsApp number |
+| C — Customer Name | Collected in flow |
+| D — Service | What they booked |
+| E — Date | Preferred date |
+| F — Time | Preferred time |
+| G — Status | New / Confirmed / Completed |
+
+---
+
+### MAKE.COM SCENARIO — 4 MODULES
+
+```
+[1] Webhook → receives WhatsApp message
+        ↓
+[2] Router → checks conversation step (via Data Store)
+        ↓
+[3] WhatsApp → sends next message in flow
+        ↓
+[4] Google Sheets → logs booking when complete
+```
+
+Conversation state tracked per customer using Make.com's built-in Data Store (key: phone number, value: current step).
+
+---
+
+## E. MVP SETUP CHECKLIST (Under 2 Hours)
+
+### Phase 1 — WhatsApp API (30 min)
+```
+[ ] Create Meta Developer account (developers.facebook.com)
+[ ] New App → Business type → add WhatsApp product
+[ ] Register phone number (must not be on personal WhatsApp)
+[ ] Generate permanent System User access token
+[ ] Save: PHONE_NUMBER_ID + ACCESS_TOKEN
+```
+
+### Phase 2 — Google Sheet (5 min)
+```
+[ ] Create new Google Sheet: "{BUSINESS_NAME} — Bookings"
+[ ] Add headers: Timestamp, Phone, Name, Service, Date, Time, Status
+[ ] Share with client
+```
+
+### Phase 3 — Make.com (45 min)
+```
+[ ] Create free Make.com account
+[ ] New scenario → Webhook module → copy webhook URL
+[ ] In Meta Developer → WhatsApp → Webhook → paste URL → verify
+[ ] Build router with step conditions
+[ ] Add WhatsApp HTTP module for each reply
+[ ] Add Google Sheets module to log bookings
+[ ] Add Data Store module to track conversation step
+[ ] Activate scenario
+```
+
+### Phase 4 — Test (20 min)
+```
+[ ] Send "Hi" to the number
+[ ] Complete full booking flow as a customer
+[ ] Confirm row appears in Google Sheet
+[ ] Send "2" — confirm owner receives the question
+[ ] Go live
+```
+
+---
+
+## F. MVP — VARIABLES TO FILL PER CLIENT (10 Variables, 5 Minutes)
+
+```
+{BUSINESS_NAME}    e.g. "Dave's Barbershop"
+{OWNER_NAME}       e.g. "Dave"
+{SERVICE_1}        e.g. "Haircut"
+{PRICE_1}          e.g. "$15"
+{SERVICE_2}        e.g. "Beard Trim"
+{PRICE_2}          e.g. "$10"
+{SERVICE_3}        e.g. "Haircut + Beard"
+{PRICE_3}          e.g. "$20"
+{DAYS}             e.g. "Mon–Sat"
+{HOURS}            e.g. "9am – 6pm"
+```
+
+---
+
+## G. FULL SYSTEM — UPGRADE PATH
+
+Once the MVP is live and the client is seeing bookings, add these one at a time.
+Each is a small addition to the existing Make.com scenario — nothing gets rebuilt.
+
+| Upgrade | What It Adds | Trigger to Upgrade |
+|---------|-------------|-------------------|
+| + Google Calendar | Auto-creates events, prevents double bookings | Client starts getting 10+ bookings/week |
+| + Airtable CRM | Better lead tracking, statuses, views | Google Sheet feels too basic |
+| + Claude AI | Natural replies instead of fixed menu | Client wants smarter conversations |
+| + Reminders | 24h + 2h appointment reminders | No-shows become a problem |
+| + Follow-ups | Thank-you + 7-day rebook prompt | Client wants repeat business automated |
+| + Daily summary | Owner WhatsApp briefing every morning | Client has 20+ bookings/week |
+
+---
+
+## H. FULL SYSTEM — TECH STACK
 
 | Layer | Tool | Why |
 |-------|------|-----|
-| Messaging | WhatsApp Cloud API (Meta) | Free tier, official API, scales to millions |
+| Messaging | WhatsApp Cloud API (Meta) | Free tier, official, scales to millions |
 | Automation | Make.com | Visual, no-code, handles branching logic, mobile-friendly |
 | AI Responses | Claude API (Haiku model) | Fast, cheap (~$0.002/conversation), context-aware |
 | Database | Airtable | No-code CRM, mobile-accessible, duplicatable |
 | Calendar | Google Calendar API | Free, universal, easy owner sharing |
-| Notifications | WhatsApp Cloud API (outbound) | Same channel, no extra tool |
-| Templates | GitHub | Version control for reusable workflow files |
 
 ---
 
-## D. STEP-BY-STEP WORKFLOW
+## I. FULL SYSTEM — AI REPLY PROMPT
 
-### STEP 1 — Receive & Parse Message
-**Trigger:** Customer sends WhatsApp message → webhook fires in Make.com
-**Action:** Extract `customer_phone`, `customer_name`, `message_body`, `timestamp` → classify intent (booking / order / enquiry / unknown)
-**Result:** Message routed to the correct flow
-
----
-
-### STEP 2 — AI Reply Generation
-**Trigger:** Classified message sent to Claude API with business context
-**Action:** Claude generates a natural, on-brand reply using this system prompt:
+Replace the fixed numbered menu with this Claude system prompt:
 
 ```
 You are a friendly assistant for {BUSINESS_NAME}, a {BUSINESS_TYPE} in {LOCATION}.
@@ -103,280 +281,163 @@ Your job:
 4. Collect: name, service, preferred date and time
 
 Keep replies under 3 sentences. Never make up services or prices.
-If the customer says "human", "urgent", or "call me" — immediately say:
+If the customer says "human", "urgent", or "call me" — say:
 "I'm connecting you with {OWNER_NAME} now. They'll be with you shortly."
 ```
 
-**Result:** Personalised reply ready in < 1 second
+---
+
+## J. FULL SYSTEM — FAILURE HANDLING
+
+| Failure | Detection | Fallback |
+|---------|-----------|----------|
+| WhatsApp API down | HTTP error in Make.com | Queue → retry every 5 min × 3, then alert owner |
+| Claude API timeout | Empty/error response | Send pre-written fallback message, flag in Airtable |
+| Double booking | Google Calendar conflict | Never confirm — offer next 3 available slots |
+| Airtable write fails | HTTP 422/500 | Store in Make.com Data Store, retry after 10 min |
+| Unrecognised message | No clear intent | "Let me connect you with {OWNER_NAME} directly." |
+| Scenario error | Make.com built-in alert | Pause + notify owner, queue incoming messages |
 
 ---
 
-### STEP 3 — Send Reply
-**Trigger:** AI response ready
-**Action:** WhatsApp Cloud API sends reply to customer
-**Result:** Customer receives instant response (typically < 3 seconds total)
+## K. SCALING STRATEGY
 
----
+### 1–100 Users (Single Business, MVP)
+- Stack: WhatsApp free tier + Make.com free + Google Sheets
+- Cost: $0/month
+- Action: Set up once, check weekly
 
-### STEP 4 — Lead Capture
-**Trigger:** Name, service, or time detected in conversation
-**Action:** Extract structured data → check Airtable for existing phone number → create or update record
+### 1–100 Users (Single Business, Full System)
+- Stack: Make.com Core + Airtable Free + Claude Haiku
+- Cost: ~$14–18/month
+- Action: Set up once, review monthly
 
-**Airtable fields captured:**
-- Phone Number (unique ID), Customer Name, Service Requested
-- Preferred Date, Preferred Time, Status, Source, Created At, Notes
-
-**Result:** Lead saved automatically, zero manual effort from owner
-
----
-
-### STEP 5 — Booking Confirmation
-**Trigger:** Customer confirms date and time
-**Action:**
-1. Check Google Calendar for conflicts at requested slot
-2. If available → create calendar event → update Airtable status to `Confirmed` → send confirmation message
-3. If unavailable → AI offers next 3 open slots → customer selects → repeat
-
-**Result:** Booking locked in, calendar updated, customer confirmed
-
----
-
-### STEP 6 — Automated Reminders
-**Trigger:** Scheduled time-based trigger in Make.com
-
-**24h reminder:**
-```
-Hi {NAME}, reminder: your {SERVICE} is tomorrow at {TIME} at {BUSINESS_NAME}.
-Reply YES to confirm or NO to reschedule.
-```
-
-**2h reminder:**
-```
-See you soon, {NAME}! Your {SERVICE} at {BUSINESS_NAME} is in 2 hours ({TIME}).
-```
-
-- If customer replies NO → trigger reschedule flow
-- If no reply → flag in Airtable for owner review
-
-**Result:** No-shows reduced significantly
-
----
-
-### STEP 7 — Post-Service Follow-up
-**Trigger:** Appointment marked `Completed` (time-based or manual)
-
-**4 hours after service:**
-```
-Hi {NAME}, thank you for visiting {BUSINESS_NAME}! Hope you loved your {SERVICE}.
-Reply BOOK whenever you're ready to come back.
-```
-
-**7 days later:**
-```
-Hi {NAME}, it's been a week! Ready to book your next {SERVICE}?
-Reply BOOK and we'll sort you out.
-```
-
-**Result:** Repeat bookings generated passively
-
----
-
-### STEP 8 — Owner Daily Summary
-**Trigger:** Every morning at 8am (Make.com scheduler)
-
-**Message sent to owner's personal WhatsApp:**
-```
-Good morning! Here's your day:
-📅 Bookings today: 4
-🔔 New leads: 2
-📌 Follow-ups due: 1
-View dashboard: [Airtable link]
-```
-
-**Result:** Owner stays informed without logging into multiple tools
-
----
-
-## E. FAILURE HANDLING
-
-| Failure Point | Detection | Fallback | Recovery |
-|---------------|-----------|----------|----------|
-| WhatsApp API down | HTTP error in Make.com | Queue message → retry every 5 min (3 attempts) | Alert owner if undelivered after 15 min |
-| Claude API timeout | Empty/error response | Send pre-written fallback: "Thanks for reaching out! We'll be with you shortly." | Flag in Airtable for manual follow-up |
-| Double booking | Google Calendar conflict detected | Never confirm — offer next 3 available slots instead | Auto-message customer if duplicate found post-creation |
-| Airtable write fails | HTTP 422/500 from Airtable | Store in Make.com data store | Retry after 10 min, alert owner after 3 failures |
-| Unrecognised message | AI confidence low | "Let me connect you with {OWNER_NAME} directly." | Owner notified on personal WhatsApp with customer's message |
-| Make.com scenario error | Built-in error handler fires | Route to owner notification module | Scenario pauses, messages queued, owner alerted |
-
----
-
-## F. SCALING STRATEGY
-
-### 1–100 Users (Single Business)
-- Stack: WhatsApp Cloud API free tier + Make.com Core + Airtable Free
-- Cost: ~$15/month
-- Capacity: 1,000 conversations/month (free WhatsApp tier)
-- Owner action: Set up once, review weekly
-
-### 100–1,000 Users (Multi-Business SaaS)
-- Each client gets: their own WhatsApp number, cloned Make.com scenario, duplicated Airtable base
-- Add: Softr/Glide client portal, Make.com Team plan, shared Claude API key with per-client usage tracking
-- Add: Automated onboarding — client fills intake form → system configures itself
+### 100–1,000 Users (Multi-Client SaaS)
+- Each client: own WhatsApp number + cloned Make.com scenario + duplicated Airtable base
+- Add: client intake form → auto-configures system
+- Add: Make.com Team plan, shared Claude API key with per-client tracking
 - Cost: ~$80–150/month base + per-client margin
 
 ### 1,000–10,000+ Users (Platform Scale)
-- Build lightweight backend: Node.js on Railway/Render
-- Central webhook router (one endpoint, routes by phone number to correct client config)
-- Client config in PostgreSQL (Supabase)
+- Central webhook router in Node.js (Railway/Render)
+- Client configs in PostgreSQL (Supabase)
 - Replace Make.com with Node.js + BullMQ job queue
-- Move WhatsApp to a BSP (Business Solution Provider) for volume pricing
-- Add Sentry (errors) + PostHog (analytics)
+- Move WhatsApp to a BSP for volume pricing
+- Add Sentry + PostHog
 - Cost: ~$300–800/month infrastructure
 
 ---
 
-## G. MONETISATION MODEL
+## L. MONETISATION MODEL
 
-### Pricing Tiers
+### Pricing
 
-| Tier | Setup Fee | Monthly | Includes |
-|------|-----------|---------|----------|
-| Starter | $49 | $29 | 1 number, 500 conversations/mo, basic flow, Airtable CRM |
-| Growth | $99 | $59 | 1 number, 2,000 conversations/mo, AI replies, reminders, follow-ups, daily summary |
-| Pro | $149 | $99 | 2 numbers, unlimited conversations, custom AI persona, weekly reports, priority support |
+| Tier | Setup | Monthly | What's Running |
+|------|-------|---------|----------------|
+| MVP | $49 | $0 | Fixed menu + Google Sheets |
+| Starter | $49 | $29 | MVP + Airtable CRM + basic AI |
+| Growth | $99 | $59 | Starter + reminders + follow-ups + daily summary |
+| Pro | $149 | $99 | Growth + custom AI persona + 2 numbers + reports |
 
 ### Unit Economics (Growth Tier)
-- Claude Haiku API (2,000 conversations): ~$6/month
-- Make.com cost share: ~$5/month
+- Claude Haiku (2,000 conversations): ~$6/month
+- Make.com share: ~$5/month
 - WhatsApp (over free tier): ~$2.50/month
-- Airtable: $0/month
-- **Total cost per client: ~$13.50/month**
-- **Revenue: $59/month**
-- **Gross margin: ~77%**
+- Airtable: $0
+- **Total cost: ~$13.50/month | Revenue: $59/month | Margin: ~77%**
 
-### Revenue Mechanics
-- Setup fee covers your onboarding time
-- Monthly retainer covers API costs + platform fees + support
-- Upsells: extra numbers, custom AI training, SMS fallback, staff access
-
----
-
-## H. AUTOMATION OPPORTUNITIES (Roadmap)
-
-### Near-term (0–3 months)
-- Automated client onboarding: intake form → system configures itself
-- AI-generated weekly performance reports sent to owner
-- Automated Google/Facebook review requests post-service
-
-### Mid-term (3–6 months)
-- Payment links via Paystack/Flutterwave/WhatsApp Pay
-- Auto-detect customer language → reply in same language
-- Loyalty tracking (Nth visit triggers automatic discount message)
-
-### Long-term (6–12 months)
-- Voice note transcription + AI response
-- AI learns each business's most common questions over time
-- Predictive scheduling (slow-day promo messages auto-sent)
-- Staff scheduling integration (only show slots when staff is available)
+### Revenue Strategy
+1. Sell the MVP at $49 setup, $0/month — low barrier, fast yes
+2. After 30 days, show them the booking data, pitch the upgrade
+3. Most clients move to Growth within 60 days
+4. Setup fee covers your time; monthly covers costs + support + profit
 
 ---
 
-## PRODUCTIZED SERVICE — 80/20 SPLIT
+## M. PRODUCTIZED SERVICE — 80/20 SPLIT
 
-### What NEVER Changes Per Client (80% — Built Once)
+### What NEVER Changes Per Client (Built Once, Reused Forever)
 
-| Component | Reuse Method |
-|-----------|-------------|
-| Make.com automation blueprint | Import → update variables |
-| AI prompt structure + booking flow | Fill in business details only |
+| Component | How It's Reused |
+|-----------|----------------|
+| Make.com blueprint | Import → update variables |
+| Message flow + booking steps | Fill in business details only |
 | WhatsApp message templates | Resubmit per account (same text) |
-| Airtable base structure + views | Duplicate from master |
+| Google Sheet structure | Duplicate from master |
+| Airtable base (full system) | Duplicate from master |
 | Error handling + fallback logic | Identical across all clients |
-| Reminder timing (24h + 2h) | Same for every business |
-| Follow-up delays (4h + 7d) | Same for every business |
-| Onboarding process | Same 8-step checklist every time |
+| Onboarding checklist | Same process every time |
 
----
-
-### What CHANGES Per Client (20% — One Config File)
+### What CHANGES Per Client (One Config File — 5 Minutes)
 
 ```
 BUSINESS_NAME
 BUSINESS_TYPE
 LOCATION
-SERVICES_LIST + PRICES
-OPENING_HOURS
+SERVICES + PRICES (up to 5)
+OPENING HOURS
 OWNER_NAME
 OWNER_PHONE
 WHATSAPP_BUSINESS_NUMBER
-GOOGLE_CALENDAR_ID
-AIRTABLE_BASE_ID
-AI_PERSONA_TONE (friendly / professional / casual)
-```
-
-**That's it. Nothing else changes.**
-
----
-
-## DEPLOYMENT CHECKLIST (Per Client — 80 Minutes)
-
-```
-[ ] Client fills intake form (name, services, hours, phone number)
-[ ] Fill config file with client details (5 min)
-[ ] Create Meta Business Account + WhatsApp API number (20 min)
-[ ] Clone Airtable base from master template (5 min)
-[ ] Import Make.com scenario blueprint + update variables (10 min)
-[ ] Connect webhook to Meta Developer app (5 min)
-[ ] Submit WhatsApp message templates to Meta (10 min)
-[ ] Run end-to-end test (send message → confirm booking → check calendar) (15 min)
-[ ] Send client their Airtable link + brief handover voice note (10 min)
 ```
 
 ---
 
-## ONGOING MAINTENANCE PER CLIENT
+## N. ONGOING MAINTENANCE PER CLIENT
 
 | Task | Frequency | Time |
 |------|-----------|------|
 | Check Make.com for errors | Weekly | 5 min |
-| Review AI reply quality (month 1 only) | Weekly | 10 min |
+| Review reply quality (month 1 only) | Weekly | 10 min |
 | Client check-in | Monthly | 10 min |
-| Change requests (hours, services, etc.) | On demand | 15 min |
-| **Total** | **Per month** | **~30 min** |
+| Change requests (new hours, services) | On demand | 15 min |
+| **Total per month** | | **~30 min** |
 
 At 20 clients: ~10 hours/month
-At 50 clients: hire a VA using the onboarding guide as their SOP
+At 50 clients: hire a VA — onboarding guide is their SOP
 
 ---
 
-## SALES PROCESS
+## O. SALES PROCESS
 
-**Qualify (5-minute call):**
-- Do you use WhatsApp for customer enquiries? → Yes
-- Do you miss messages or feel overwhelmed? → Yes
-- Do you manage bookings manually? → Yes
+**Qualify (5 minutes):**
+- Do you use WhatsApp for customer enquiries?
+- Do you miss messages or feel overwhelmed?
+- Do you manage bookings manually?
 
-**Demo:** Let them message a live demo number. They experience the bot as a customer. They sell themselves.
+Two yes answers = buyer.
 
-**Close:** Present the tier table. Most local businesses → Growth ($99 setup + $59/month). Offer 14-day money-back guarantee.
+**Demo:** Let them message a live demo number. They go through the booking flow as a customer. 90 seconds. They sell themselves.
 
-**Onboard:** Send intake form → 90-minute setup session → live.
+**Close:** Start with MVP ($49, $0/month). Remove all friction. Once they see it working, upsell to Growth.
+
+**Onboard:** Send 10-variable intake form → 2-hour setup call → live.
 
 ---
 
-## WHY CLIENTS STAY (Retention Moats)
+## P. AUTOMATION ROADMAP (Future Upgrades)
 
-1. All customer data lives in your Airtable setup (switching cost)
-2. AI prompt is tuned to their specific business over time
-3. Passive bookings start coming in within days (results)
-4. $29–$99/month is trivial vs. the revenue it generates
-5. They never want to go back to manual WhatsApp management
+### Near-term
+- Automated client onboarding (intake form → system self-configures)
+- Google/Facebook review requests post-service
+- Payment links via Paystack / Flutterwave / WhatsApp Pay
+
+### Mid-term
+- Auto-detect customer language → reply in same language
+- Loyalty tracking (Nth visit = automatic discount message)
+- AI-generated weekly performance reports for owner
+
+### Long-term
+- Voice note transcription + AI response
+- Predictive scheduling (slow-day promo messages auto-sent)
+- Staff scheduling integration (only show slots when staff is available)
 
 ---
 
 ## KEY CONSTRAINTS TO SET WITH CLIENTS
 
-- One dedicated phone number required (not a personal WhatsApp number)
-- WhatsApp templates need 24–48h Meta approval before first outbound send
-- System handles ~80% of conversations — some will always need the owner
-- Human handoff is always available (customers can trigger it anytime)
+- One dedicated phone number required (cannot use their personal WhatsApp)
+- WhatsApp outbound templates need 24–48h Meta approval before first send
+- Bot handles ~80% of conversations — some will always need the owner
+- Human handoff is always available — customers can trigger it anytime
+- MVP has no conflict checking — owner confirms manually from the Sheet
