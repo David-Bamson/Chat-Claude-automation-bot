@@ -1,0 +1,68 @@
+{
+  "_comment": "Airtable base schema. Recreate this structure when duplicating the master base for a new client.",
+  "_version": "1.0.0",
+
+  "tables": [
+    {
+      "name": "Leads",
+      "description": "All customer leads and bookings",
+      "fields": [
+        { "name": "Phone Number",       "type": "phone",      "primary": true,  "note": "Use as unique identifier — format: +447..." },
+        { "name": "Customer Name",      "type": "text",       "required": false },
+        { "name": "Service Requested",  "type": "text",       "required": false },
+        { "name": "Preferred Date",     "type": "date",       "required": false },
+        { "name": "Preferred Time",     "type": "text",       "required": false, "note": "Store as HH:MM string" },
+        { "name": "Status",             "type": "single_select", "options": [
+            "New Lead", "Confirmed", "Reminder Sent", "Completed", "No-Show", "Cancelled", "Follow-up Pending"
+          ]
+        },
+        { "name": "Source",             "type": "single_select", "options": ["WhatsApp"] },
+        { "name": "Created At",         "type": "datetime",   "auto": true },
+        { "name": "Last Contacted",     "type": "datetime",   "required": false },
+        { "name": "Notes",              "type": "long_text",  "required": false },
+        { "name": "Calendar Event ID",  "type": "text",       "required": false, "note": "Google Calendar event ID for updates/cancellations" }
+      ],
+      "views": [
+        {
+          "name": "Today's Bookings",
+          "type": "grid",
+          "filter": "Preferred Date = TODAY() AND Status = 'Confirmed'",
+          "sort": "Preferred Time ASC"
+        },
+        {
+          "name": "New Leads",
+          "type": "grid",
+          "filter": "Status = 'New Lead'",
+          "sort": "Created At DESC"
+        },
+        {
+          "name": "Follow-ups Due",
+          "type": "grid",
+          "filter": "Status = 'Follow-up Pending'",
+          "sort": "Last Contacted ASC"
+        },
+        {
+          "name": "All Records",
+          "type": "grid",
+          "sort": "Created At DESC"
+        }
+      ]
+    },
+    {
+      "name": "Business Config",
+      "description": "Stores business settings — used as a reference, not for automation logic",
+      "fields": [
+        { "name": "Setting",  "type": "text" },
+        { "name": "Value",    "type": "text" }
+      ],
+      "seed_records": [
+        { "Setting": "Business Name",   "Value": "{{BUSINESS_NAME}}" },
+        { "Setting": "Business Type",   "Value": "{{BUSINESS_TYPE}}" },
+        { "Setting": "Location",        "Value": "{{LOCATION}}" },
+        { "Setting": "Owner Name",      "Value": "{{OWNER_NAME}}" },
+        { "Setting": "Owner Phone",     "Value": "{{OWNER_PHONE}}" },
+        { "Setting": "WhatsApp Number", "Value": "{{WHATSAPP_NUMBER}}" }
+      ]
+    }
+  ]
+}

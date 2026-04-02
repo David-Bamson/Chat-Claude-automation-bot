@@ -1,0 +1,90 @@
+{
+  "_comment": "Make.com scenario blueprint. Import via Scenarios → Import Blueprint. Update all {{VARIABLES}} after import.",
+  "_version": "1.0.0",
+  "_modules": [
+    "1. Webhook (trigger)",
+    "2. JSON Parser (extract message data)",
+    "3. Filter (ignore non-message events)",
+    "4. Deduplication check (Data Store)",
+    "5. Claude API — Intent classification",
+    "6. Router (booking / order / enquiry / unknown)",
+    "7a. Claude API — Generate reply",
+    "7b. WhatsApp — Send reply",
+    "8. Slot extractor (Claude API)",
+    "9. Airtable — Search existing lead",
+    "10. Airtable — Create or Update lead",
+    "11. Google Calendar — Check availability",
+    "12. Google Calendar — Create event",
+    "13. WhatsApp — Send booking confirmation",
+    "14. Scheduler — Trigger reminders",
+    "15. WhatsApp — Send reminder",
+    "16. Scheduler — Trigger follow-ups",
+    "17. WhatsApp — Send follow-up",
+    "18. Error Handler — Catch all failures",
+    "19. WhatsApp — Send fallback to customer",
+    "20. WhatsApp — Alert owner"
+  ],
+
+  "variables": {
+    "BUSINESS_NAME": "{{BUSINESS_NAME}}",
+    "BUSINESS_TYPE": "{{BUSINESS_TYPE}}",
+    "LOCATION": "{{LOCATION}}",
+    "OWNER_NAME": "{{OWNER_NAME}}",
+    "OWNER_PHONE": "{{OWNER_PHONE}}",
+    "WHATSAPP_PHONE_NUMBER_ID": "{{PHONE_NUMBER_ID}}",
+    "SERVICES_LIST": "{{SERVICES_LIST}}",
+    "HOURS_SUMMARY": "{{HOURS_SUMMARY}}",
+    "PRICING_SUMMARY": "{{PRICING_SUMMARY}}",
+    "AIRTABLE_BASE_ID": "{{AIRTABLE_BASE_ID}}",
+    "AIRTABLE_TABLE_NAME": "Leads",
+    "GOOGLE_CALENDAR_ID": "{{GOOGLE_CALENDAR_ID}}",
+    "FALLBACK_MESSAGE": "Thanks for reaching out to {{BUSINESS_NAME}}! We'll get back to you shortly.",
+    "HANDOFF_MESSAGE": "I'm connecting you with {{OWNER_NAME}} now. They'll be with you shortly.",
+    "SLOT_DURATION_MINUTES": 30,
+    "BUFFER_MINUTES": 15
+  },
+
+  "connections_required": [
+    {
+      "name": "WhatsApp Cloud API",
+      "credentials": ["PHONE_NUMBER_ID", "ACCESS_TOKEN"]
+    },
+    {
+      "name": "Claude API",
+      "credentials": ["ANTHROPIC_API_KEY"],
+      "model": "claude-haiku-4-5-20251001",
+      "note": "Use Haiku for cost efficiency. Switch to Sonnet for higher quality if needed."
+    },
+    {
+      "name": "Airtable",
+      "credentials": ["AIRTABLE_API_KEY"],
+      "base_id": "{{AIRTABLE_BASE_ID}}"
+    },
+    {
+      "name": "Google Calendar",
+      "credentials": ["GOOGLE_OAUTH"],
+      "calendar_id": "{{GOOGLE_CALENDAR_ID}}"
+    }
+  ],
+
+  "error_handler": {
+    "strategy": "catch_and_notify",
+    "max_retries": 3,
+    "retry_intervals_seconds": [30, 60, 120],
+    "on_final_failure": "send_owner_whatsapp_alert",
+    "fallback_customer_message": "{{variables.FALLBACK_MESSAGE}}"
+  },
+
+  "deduplication": {
+    "store": "make_data_store",
+    "key": "whatsapp_message_id",
+    "ttl_hours": 24
+  },
+
+  "routing_keywords": {
+    "booking": ["book", "appointment", "schedule", "slot", "reserve", "when", "available"],
+    "order": ["order", "buy", "purchase", "want", "need", "get me", "how much"],
+    "enquiry": ["price", "cost", "do you", "can you", "what", "how", "info", "details"],
+    "handoff": ["human", "speak to", "call me", "urgent", "manager", "owner", "complaint"]
+  }
+}

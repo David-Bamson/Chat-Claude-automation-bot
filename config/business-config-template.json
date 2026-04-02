@@ -1,0 +1,65 @@
+{
+  "_comment": "Copy this file per client. Only these variables change between deployments.",
+  "_version": "1.0.0",
+
+  "business": {
+    "name": "{{BUSINESS_NAME}}",
+    "type": "{{BUSINESS_TYPE}}",
+    "location": "{{LOCATION}}",
+    "owner_name": "{{OWNER_NAME}}",
+    "owner_phone": "{{OWNER_PHONE_WITH_COUNTRY_CODE}}",
+    "whatsapp_number": "{{WHATSAPP_BUSINESS_NUMBER}}",
+    "google_calendar_id": "{{GOOGLE_CALENDAR_ID}}"
+  },
+
+  "services": [
+    {
+      "name": "{{SERVICE_1_NAME}}",
+      "duration_minutes": 30,
+      "price": "{{SERVICE_1_PRICE}}",
+      "description": "{{SERVICE_1_DESCRIPTION}}"
+    },
+    {
+      "name": "{{SERVICE_2_NAME}}",
+      "duration_minutes": 45,
+      "price": "{{SERVICE_2_PRICE}}",
+      "description": "{{SERVICE_2_DESCRIPTION}}"
+    }
+  ],
+
+  "hours": {
+    "monday":    { "open": "09:00", "close": "18:00" },
+    "tuesday":   { "open": "09:00", "close": "18:00" },
+    "wednesday": { "open": "09:00", "close": "18:00" },
+    "thursday":  { "open": "09:00", "close": "18:00" },
+    "friday":    { "open": "09:00", "close": "18:00" },
+    "saturday":  { "open": "10:00", "close": "16:00" },
+    "sunday":    { "open": "closed", "close": "closed" }
+  },
+
+  "booking": {
+    "slot_duration_minutes": 30,
+    "buffer_between_slots_minutes": 15,
+    "max_advance_booking_days": 30,
+    "reminder_hours_before": [24, 2]
+  },
+
+  "ai": {
+    "persona_tone": "friendly",
+    "language": "en",
+    "fallback_message": "Thanks for reaching out! We'll get back to you shortly.",
+    "handoff_trigger_keywords": ["human", "speak to someone", "call me", "urgent"]
+  },
+
+  "follow_up": {
+    "thank_you_delay_hours": 4,
+    "rebook_prompt_days": 7,
+    "no_reply_escalation_hours": 2
+  },
+
+  "integrations": {
+    "airtable_base_id": "{{AIRTABLE_BASE_ID}}",
+    "airtable_table_name": "Leads",
+    "make_scenario_id": "{{MAKE_SCENARIO_ID}}"
+  }
+}
